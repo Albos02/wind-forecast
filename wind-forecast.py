@@ -50,6 +50,17 @@ df["rolling_mean_3h"] = df[target].shift(1).rolling(window=18).mean()
 df["rolling_std_3h"] = df[target].shift(1).rolling(window=18).std()
 df["rolling_mean_6h"] = df[target].shift(1).rolling(window=36).mean()
 
+# Pressure and Temperature trends (Tendance sur 1h et 3h)
+df["pression_tendance_1h"] = df["pression_barométrique_qfe_valeur_instantanée"] - df[
+    "pression_barométrique_qfe_valeur_instantanée"
+].shift(6)
+df["temp_tendance_1h"] = df["température_air_2m_valeur_instantanée"] - df[
+    "température_air_2m_valeur_instantanée"
+].shift(6)
+df["pression_tendance_3h"] = df["pression_barométrique_qfe_valeur_instantanée"] - df[
+    "pression_barométrique_qfe_valeur_instantanée"
+].shift(18)
+
 # On crée des lags : le vent actuel et les retards (T-10min, T-20min, etc.)
 df["vent_0min_avant"] = df[target]
 df["vent_10min_avant"] = df[target].shift(1)
@@ -74,6 +85,8 @@ df = df.dropna(
         "rolling_mean_3h",
         "rolling_std_3h",
         "rolling_mean_6h",
+        "pression_tendance_1h",
+        "temp_tendance_1h",
         "target_1h",
     ]
 )
@@ -100,11 +113,17 @@ features = [
     "rolling_std_3h",
     "rolling_mean_6h",
     "pression_barométrique_qfe_valeur_instantanée",
+    "pression_tendance_1h",
+    "pression_tendance_3h",
+    "température_air_2m_valeur_instantanée",
+    "temp_tendance_1h",
     "humidité_relative_air_2m_valeur_instantanée",
     "précipitations_somme_10min",
-    "température_air_2m_valeur_instantanée",
     "rafale_3s_maximum_kmh",
 ]
+
+# Description concise des groupes de features pour le print
+feature_summary = "Lags, Dir, Time, Rolling, Weather Trends"
 
 target = "target_1h"
 
@@ -124,7 +143,14 @@ X_test, y_test = test_df[features], test_df[target]
 
 # 1. Configuration du modèle pour GPU
 model = xgb.XGBRegressor(
-    n_estimators=250, max_depth=5, tree_method="hist", device="cuda", random_state=42
+    n_estimators=500,
+    max_depth=6,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    tree_method="hist",
+    device="cuda",
+    random_state=42,
 )
 
 print(f"🚀 Lancement de l'entraînement GPU sur {len(X_train)} lignes...")
@@ -156,9 +182,8 @@ print("")
 print("-------------------------------------------------------------")
 print("")
 print(
-    f"Depth {model.get_params()['max_depth']}    n {model.get_params()['n_estimators']} -> Prediction 1h ({len(features)} features)"
+    f"Depth {model.get_params()['max_depth']}    n {model.get_params()['n_estimators']} -> Prediction 1h ({len(features)} feat: {feature_summary})"
 )
-print(f"Features used: {', '.join(features)}")
 print("")
 print(f"--- RÉSULTATS ---")
 print(f"Score R² : {r2:.4f}")
