@@ -42,7 +42,8 @@ df["vent_20min_avant"] = df[target].shift(2)
 df["vent_30min_avant"] = df[target].shift(3)
 df["vent_40min_avant"] = df[target].shift(4)
 df["vent_50min_avant"] = df[target].shift(5)
-df["vent_tendance_1h"] = df[target] - df["vent_10min_avant"]
+df["vent_60min_avant"] = df[target].shift(6)
+df["vent_tendance_1h"] = df["vent_0min_avant"] - df["vent_60min_avant"]
 df["target_1h"] = df[target].shift(-6)
 
 
@@ -54,6 +55,7 @@ df = df.dropna(
         "vent_30min_avant",
         "vent_40min_avant",
         "vent_50min_avant",
+        "vent_60min_avant",
         "target_1h",
     ]
 )
@@ -68,6 +70,7 @@ features = [
     "vent_30min_avant",
     "vent_40min_avant",
     "vent_50min_avant",
+    "vent_60min_avant",
     "vent_tendance_1h",
     "hour",
     "month",
@@ -136,6 +139,13 @@ print(f"Score R² : {r2:.4f}")
 print(f"Erreur moyenne (MAE) : {mae:.2f} km/h")
 print(f"RMSE : {rmse:.2f} km/h (Sensible aux grosses erreurs)")
 print(f"MAPE : {mape_clean:.2%} (Erreur relative moyenne hors calme plat)")
+print("")
+print(f"--- DUREE ---")
+print(f"Temps d'entraînement : {duree:.2f} secondes (soit {duree / 60:.2f} minutes)")
+print("")
+print("-------------------------------------------------------------")
+print("")
+
 
 # fig, axes = plt.subplots(2, 1, figsize=(14, 8))
 
