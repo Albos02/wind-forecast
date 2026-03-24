@@ -31,15 +31,26 @@ cols_num = df.select_dtypes(include=[np.number]).columns
 df[cols_num] = df[cols_num].ffill()
 
 # 3. Feature Engineering (Heure, Mois et Retards temporels)
+target = "vitesse_vent_moyenne_10min_kmh"
 df["hour"] = df["horodatage_référence"].dt.hour
 df["month"] = df["horodatage_référence"].dt.month
+
+# Cyclical encoding for Time (Hour/Month)
+df["hour_sin"] = np.sin(2 * np.pi * df["hour"] / 24.0)
+df["hour_cos"] = np.cos(2 * np.pi * df["hour"] / 24.0)
+df["month_sin"] = np.sin(2 * np.pi * (df["month"] - 1) / 12.0)
+df["month_cos"] = np.cos(2 * np.pi * (df["month"] - 1) / 12.0)
 
 # Cyclical encoding for wind direction (0-360 degrees)
 df["wind_dir_sin"] = np.sin(2 * np.pi * df["direction_du_vent_moyenne_10min"] / 360.0)
 df["wind_dir_cos"] = np.cos(2 * np.pi * df["direction_du_vent_moyenne_10min"] / 360.0)
 
+# Rolling statistics (Moyennes mobiles sur 3h et 6h)
+df["rolling_mean_3h"] = df[target].shift(1).rolling(window=18).mean()
+df["rolling_std_3h"] = df[target].shift(1).rolling(window=18).std()
+df["rolling_mean_6h"] = df[target].shift(1).rolling(window=36).mean()
+
 # On crée des lags : le vent actuel et les retards (T-10min, T-20min, etc.)
-target = "vitesse_vent_moyenne_10min_kmh"
 df["vent_0min_avant"] = df[target]
 df["vent_10min_avant"] = df[target].shift(1)
 df["vent_20min_avant"] = df[target].shift(2)
@@ -60,6 +71,9 @@ df = df.dropna(
         "vent_40min_avant",
         "vent_50min_avant",
         "vent_60min_avant",
+        "rolling_mean_3h",
+        "rolling_std_3h",
+        "rolling_mean_6h",
         "target_1h",
     ]
 )
@@ -78,8 +92,13 @@ features = [
     "vent_tendance_1h",
     "wind_dir_sin",
     "wind_dir_cos",
-    "hour",
-    "month",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "rolling_mean_3h",
+    "rolling_std_3h",
+    "rolling_mean_6h",
     "pression_barométrique_qfe_valeur_instantanée",
     "humidité_relative_air_2m_valeur_instantanée",
     "précipitations_somme_10min",
@@ -137,8 +156,9 @@ print("")
 print("-------------------------------------------------------------")
 print("")
 print(
-    f"Depth {model.get_params()['max_depth']}    n {model.get_params()['n_estimators']} -> Prediction 1h"
+    f"Depth {model.get_params()['max_depth']}    n {model.get_params()['n_estimators']} -> Prediction 1h ({len(features)} features)"
 )
+print(f"Features used: {', '.join(features)}")
 print("")
 print(f"--- RÉSULTATS ---")
 print(f"Score R² : {r2:.4f}")
