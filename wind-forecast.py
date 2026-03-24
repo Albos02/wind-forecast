@@ -34,6 +34,10 @@ df[cols_num] = df[cols_num].ffill()
 df["hour"] = df["horodatage_référence"].dt.hour
 df["month"] = df["horodatage_référence"].dt.month
 
+# Cyclical encoding for wind direction (0-360 degrees)
+df["wind_dir_sin"] = np.sin(2 * np.pi * df["direction_du_vent_moyenne_10min"] / 360.0)
+df["wind_dir_cos"] = np.cos(2 * np.pi * df["direction_du_vent_moyenne_10min"] / 360.0)
+
 # On crée des lags : le vent actuel et les retards (T-10min, T-20min, etc.)
 target = "vitesse_vent_moyenne_10min_kmh"
 df["vent_0min_avant"] = df[target]
@@ -72,6 +76,8 @@ features = [
     "vent_50min_avant",
     "vent_60min_avant",
     "vent_tendance_1h",
+    "wind_dir_sin",
+    "wind_dir_cos",
     "hour",
     "month",
     "pression_barométrique_qfe_valeur_instantanée",
@@ -99,7 +105,7 @@ X_test, y_test = test_df[features], test_df[target]
 
 # 1. Configuration du modèle pour GPU
 model = xgb.XGBRegressor(
-    n_estimators=250, max_depth=13, tree_method="hist", device="cuda", random_state=42
+    n_estimators=250, max_depth=5, tree_method="hist", device="cuda", random_state=42
 )
 
 print(f"🚀 Lancement de l'entraînement GPU sur {len(X_train)} lignes...")

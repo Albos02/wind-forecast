@@ -9,9 +9,9 @@ The lag features are correctly shifted now.
 df["vent_0min_avant"] = df[target]
 df["vent_10min_avant"] = df[target].shift(1)
 Using shift(1) means vent_0min_avant is actually the wind speed from 10 minutes ago, not right now. vent_0min_avant should use df[target] directly, and the other lags should be shifted accordingly (e.g., vent_10min_avant = shift(1)).
-3. Incorrect Trend Calculation (vent_tendance_1h)
-The 1-hour trend is currently calculated as:
-df["vent_tendance_1h"] = df[target] - df["vent_10min_avant"]
+3. Incorrect Trend Calculation (vent_tendance_1h) [FIXED]
+The 1-hour trend is correctly calculated now:
+df["vent_tendance_1h"] = df["vent_0min_avant"] - df["vent_60min_avant"]
 This only calculates the trend over the last 10 or 20 minutes depending on the shift. To represent a true 1-hour trend, it should subtract the wind speed from 60 minutes ago:
 df["vent_tendance_1h"] = df["vent_0min_avant"] - df["vent_60min_avant"]
 4. Data Leakage through Interpolation [FIXED]
