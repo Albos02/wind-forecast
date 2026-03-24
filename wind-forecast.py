@@ -25,24 +25,23 @@ df = pd.read_parquet("data/processed_windspeed.parquet")
 df["horodatage_référence"] = pd.to_datetime(df["horodatage_référence"], dayfirst=True)
 df = df.sort_values("horodatage_référence").reset_index(drop=True)
 
-# 2. Gestion des NaN (Interpolation linéaire : relie les points logiquement en comblant les trous)
+# 2. Gestion des NaN (ffill : utilise la dernière valeur connue pour combler les trous)
 # On ne traite que les colonnes numériques
 cols_num = df.select_dtypes(include=[np.number]).columns
-df[cols_num] = df[cols_num].interpolate(method="linear").bfill()
+df[cols_num] = df[cols_num].ffill()
 
 # 3. Feature Engineering (Heure, Mois et Retards temporels)
 df["hour"] = df["horodatage_référence"].dt.hour
 df["month"] = df["horodatage_référence"].dt.month
 
-# On crée des lags : le vent à T-10min et T-20min
-
+# On crée des lags : le vent actuel et les retards (T-10min, T-20min, etc.)
 target = "vitesse_vent_moyenne_10min_kmh"
-df["vent_0min_avant"] = df[target].shift(1)
-df["vent_10min_avant"] = df[target].shift(2)
-df["vent_20min_avant"] = df[target].shift(3)
-df["vent_30min_avant"] = df[target].shift(4)
-df["vent_40min_avant"] = df[target].shift(5)
-df["vent_50min_avant"] = df[target].shift(6)
+df["vent_0min_avant"] = df[target]
+df["vent_10min_avant"] = df[target].shift(1)
+df["vent_20min_avant"] = df[target].shift(2)
+df["vent_30min_avant"] = df[target].shift(3)
+df["vent_40min_avant"] = df[target].shift(4)
+df["vent_50min_avant"] = df[target].shift(5)
 df["vent_tendance_1h"] = df[target] - df["vent_10min_avant"]
 df["target_1h"] = df[target].shift(-6)
 
